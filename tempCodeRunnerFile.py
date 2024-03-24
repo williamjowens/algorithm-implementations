@@ -6,9 +6,6 @@ from sklearn.utils import resample
 from deap import base, creator, tools, algorithms
 from scipy.stats import entropy
 
-# Set random seed for reproducibility
-np.random.seed(42)
-
 # Genetic Decision Forest classifier
 class GeneticDecisionForestClassifier(BaseEstimator, ClassifierMixin):
     class Individual:
@@ -42,7 +39,6 @@ class GeneticDecisionForestClassifier(BaseEstimator, ClassifierMixin):
         self.ensemble_preds_ = []
 
     def _create_individual(self):
-        np.random.seed(self.random_state)
         feature_mask = np.random.choice([True, False], size=self.n_features_)
         max_depth = int(np.random.randint(1, self.max_depth))
         fitness = creator.FitnessMax()
@@ -58,7 +54,6 @@ class GeneticDecisionForestClassifier(BaseEstimator, ClassifierMixin):
         X_selected = X[:, individual.feature_mask]
         X_selected = np.squeeze(X_selected)
         if self.bootstrap:
-            np.random.seed(self.random_state)
             indices = resample(range(X_selected.shape[0]), replace=True, n_samples=X_selected.shape[0], random_state=self.random_state)
             X_bootstrap, y_bootstrap = X_selected[indices, :], y[indices]
             X_bootstrap = np.squeeze(X_bootstrap)
@@ -91,14 +86,12 @@ class GeneticDecisionForestClassifier(BaseEstimator, ClassifierMixin):
         return toolbox
 
     def _cx_uniform(self, ind1, ind2, indpb):
-        np.random.seed(self.random_state)
         for i in range(len(ind1.feature_mask)):
             if np.random.random() < indpb:
                 ind1.feature_mask[i], ind2.feature_mask[i] = ind2.feature_mask[i], ind1.feature_mask[i]
         return ind1, ind2
 
     def _mut_flip_bit(self, individual, indpb):
-        np.random.seed(self.random_state)
         for i in range(len(individual.feature_mask)):
             if np.random.random() < indpb:
                 individual.feature_mask[i] = not individual.feature_mask[i]
@@ -246,8 +239,8 @@ if __name__ == '__main__':
     gdf = GeneticDecisionForestClassifier(population_size=50, max_generations=100, max_depth=200,
                                           crossover_rate=0.8, mutation_rate=0.1, tournament_size=5,
                                           feature_importance_threshold=0.1, min_samples_split=2,
-                                          min_samples_leaf=1, max_features=0.8, bootstrap=True,
-                                          diversity_weight=0.9, niches=5, adaptive_diversity=True,
+                                          min_samples_leaf=1, max_features='sqrt', bootstrap=True,
+                                          diversity_weight=0.9, niches=10, adaptive_diversity=True,
                                           random_state=42)
 
     # Train the classifier
